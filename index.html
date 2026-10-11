@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="bn">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finish Store স্টক সামারি জেনারেটর</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Hind+Siliguri:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <style>
+    :root {
+      --paper: #F2EEE3;
+      --paper-card: #FBF9F4;
+      --ink: #202D42;
+      --ink-soft: #5B6572;
+      --indigo: #1F3B57;
+      --indigo-deep: #152A3D;
+      --mustard: #B9791E;
+      --mustard-soft: #EFDCB2;
+      --rule: #D9D1BE;
+      --error: #8B3A3A;
+      --error-soft: #F3E4E1;
+      --success: #4C6B4F;
+      --font-display: 'Fraunces', serif;
+      --font-body: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --radius: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--paper);
+      background-image:
+        radial-gradient(circle at 1px 1px, rgba(32, 45, 66, 0.05) 1px, transparent 0);
+      background-size: 22px 22px;
+      color: var(--ink);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+    }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      text-align: center;
+      margin-bottom: 34px;
+    }
+
+    .hero h1 {
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 26px;
+      margin: 0 0 10px;
+      color: var(--indigo);
+      letter-spacing: 0.2px;
+    }
+
+    /* ---------- Steps ---------- */
+    .steps {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0;
+      margin: 0 0 28px;
+    }
+
+    .steps li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--ink-soft);
+      font-weight: 600;
+    }
+
+    .steps li .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid var(--rule);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-soft);
+      background: var(--paper-card);
+    }
+
+    .steps li.active {
+      color: var(--indigo);
+    }
+
+    .steps li.active .num {
+      border-color: var(--indigo);
+      color: var(--indigo);
+      background: var(--mustard-soft);
+    }
+
+    .steps li.done .num {
+      border-color: var(--success);
+      color: #fff;
+      background: var(--success);
+    }
+
+    .steps .sep {
+      width: 26px;
+      height: 1px;
+      background: var(--rule);
+    }
+
+    /* ---------- Card ---------- */
+    .card {
+      background: var(--paper-card);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(32, 45, 66, 0.04), 0 8px 24px rgba(32, 45, 66, 0.06);
+      padding: 36px;
+    }
+
+    .panel.hidden {
+      display: none;
+    }
+
+    /* ---------- Dropzone ---------- */
+    .dropzone {
+      border: 2px dashed var(--rule);
+      border-radius: var(--radius);
+      padding: 48px 24px;
+      text-align: center;
+      transition: border-color .15s ease, background .15s ease;
+    }
+
+    .dropzone.dragover {
+      border-color: var(--mustard);
+      background: var(--mustard-soft);
+    }
+
+    .dz-icon {
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 16px;
+      border: 1.5px solid var(--indigo);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--indigo);
+      position: relative;
+    }
+
+    .dz-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .dz-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0 0 16px;
+    }
+
+    .dz-hint {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      margin: 14px 0 0;
+    }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 14px;
+      padding: 11px 22px;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      transition: transform .08s ease, background .15s ease, box-shadow .15s ease;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--indigo);
+      color: #F6EFDF;
+      box-shadow: 0 2px 0 var(--indigo-deep);
+    }
+
+    .btn-primary:hover {
+      background: var(--indigo-deep);
+    }
+
+    .btn-lg {
+      padding: 13px 28px;
+      font-size: 15px;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--indigo);
+      border: 1.5px solid var(--indigo);
+    }
+
+    .btn-secondary:hover {
+      background: var(--indigo);
+      color: #F6EFDF;
+    }
+
+    .btn-text {
+      background: none;
+      color: var(--ink-soft);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      padding: 11px 8px;
+    }
+
+    .btn-text:hover {
+      color: var(--indigo);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ---------- Processing ---------- */
+    #panel-processing {
+      text-align: center;
+      padding: 30px 0;
+    }
+
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 3px solid var(--rule);
+      border-top-color: var(--mustard);
+      margin: 0 auto 18px;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #processingText {
+      font-size: 14px;
+      color: var(--ink-soft);
+    }
+
+    /* ---------- Error ---------- */
+    .error-box {
+      background: var(--error-soft);
+      border: 1px solid var(--error);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+
+    .error-box p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--error);
+      line-height: 1.7;
+    }
+
+    /* ---------- Results ---------- */
+    .results-head {
+      margin-bottom: 22px;
+    }
+
+    .file-name {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin: 0 0 4px;
+      word-break: break-all;
+    }
+
+    .result-sub {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0;
+    }
+
+    .result-sub .accent {
+      color: var(--mustard);
+    }
+
+    .tags-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin: 22px 0 26px;
+    }
+
+    .tag-card {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-top: 2px dashed var(--indigo);
+      border-radius: 4px;
+      padding: 18px 16px 16px 26px;
+    }
+
+    .tag-card::before {
+      content: '';
+      position: absolute;
+      top: 11px;
+      left: 10px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--paper-card);
+      border: 1.5px solid var(--indigo);
+    }
+
+    .tag-name {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.4px;
+      color: var(--indigo);
+      margin: 0 0 12px;
+      text-transform: uppercase;
+    }
+
+    .tag-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 5px;
+    }
+
+    .tag-row .lbl {
+      font-size: 11.5px;
+      color: var(--ink-soft);
+    }
+
+    .tag-row .val {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .tag-card.empty {
+      opacity: 0.55;
+    }
+
+    .tag-card.empty .tag-name::after {
+      content: ' — খালি';
+      font-weight: 400;
+      text-transform: none;
+      color: var(--ink-soft);
+    }
+
+    .options-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--rule);
+      flex-wrap: wrap;
+    }
+
+    .options-row label {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--ink-soft);
+    }
+
+    .options-row select {
+      font-family: var(--font-body);
+      font-size: 13.5px;
+      padding: 8px 12px;
+      border-radius: 5px;
+      border: 1.5px solid var(--rule);
+      background: var(--paper-card);
+      color: var(--ink);
+    }
+
+    .actions-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .fallback-note {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: var(--mustard-soft);
+      border-radius: 4px;
+    }
+
+    /* ---------- Footer ---------- */
+    .footnote {
+      text-align: center;
+      margin-top: 26px;
+    }
+
+    .footnote p {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      margin: 0;
+    }
+
+    @media (max-width:520px) {
+      .card {
+        padding: 24px 18px;
+      }
+
+      .hero h1 {
+        font-size: 22px;
+      }
+
+      .steps li span:last-child {
+        display: none;
+      }
+
+      .steps .sep {
+        width: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+
+    <header class="hero">
+      <h1>Finish Store স্টক সামারি জেনারেটর</h1>
+    </header>
+
+
+
+    <main class="card">
+
+      <section id="panel-upload" class="panel">
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept=".xls,.xlsx,.xlsm,.csv" hidden>
+          <div class="dz-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M12 3v12" />
+              <path d="M7 8l5-5 5 5" />
+              <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+            </svg>
+          </div>
+          <p class="dz-title">এখানে ফাইল টেনে আনুন, অথবা</p>
+          <button id="browseBtn" class="btn btn-primary">ফাইল বাছাই করুন</button>
+          <p class="dz-hint">ERP থেকে ডাউনলোড করা .xls / .xlsx স্টক রিপোর্ট ফাইল</p>
+        </div>
+      </section>
+
+      <section id="panel-processing" class="panel hidden">
+        <div class="spinner"></div>
+        <p id="processingText">ফাইল পড়া হচ্ছে…</p>
+      </section>
+
+      <section id="panel-error" class="panel hidden">
+        <div class="error-box">
+          <p id="errorText"></p>
+        </div>
+        <button id="retryBtn" class="btn btn-secondary">আবার চেষ্টা করুন</button>
+      </section>
+
+      <section id="panel-results" class="panel hidden">
+        <div class="results-head">
+          <p class="file-name" id="resultFileName"></p>
+          <p class="result-sub" id="resultSub"></p>
+        </div>
+
+        <div class="tags-grid" id="tagsGrid"></div>
+
+        <div class="options-row">
+          <label for="sortMode">শিটের মধ্যে সাজানোর ক্রম</label>
+          <select id="sortMode">
+            <option value="productCode" selected>Product Code অনুযায়ী</option>
+            <option value="orderNumber">Order Number অনুযায়ী</option>
+            <option value="original">রিপোর্টে যেভাবে আছে</option>
+          </select>
+        </div>
+
+        <div class="actions-row">
+          <button id="downloadBtn" class="btn btn-primary btn-lg">এক্সেল ফাইল ডাউনলোড করুন</button>
+          <button id="resetBtn" class="btn btn-text">নতুন ফাইল আপলোড করুন</button>
+        </div>
+
+        <p class="fallback-note hidden" id="fallbackNote">নোট: স্টাইলিং লাইব্রেরি লোড না হওয়ায় ফাইলটি সাধারণ (বোল্ড
+          ছাড়া) ফরম্যাটে তৈরি হবে — ডেটা সম্পূর্ণ নির্ভুল থাকবে।</p>
+      </section>
+
+    </main>
+
+    <footer class="footnote">
+      <p style="margin-top:4px;">© 2026 — Design & Development By Joyanta - MIS, AAF Jessore (265389)</p>
+    </footer>
+  </div>
+
+  <script>
+    /* =========================================================
+       1. CORE EXTRACTION LOGIC
+       (validated against a real ERP export before shipping)
+       ========================================================= */
+
+    const PREFERRED_ORDER = ['ALTER', 'CURRENT', 'DATE FAILED', 'REJECT DISPLAY'];
+
+    function normText(v) {
+      if (v === null || v === undefined) return '';
+      return String(v).replace(/\s+/g, ' ').trim();
+    }
+
+    function toNumber(v) {
+      if (v === null || v === undefined || v === '') return 0;
+      if (typeof v === 'number') return v;
+      const n = parseFloat(String(v).replace(/,/g, ''));
+      return isNaN(n) ? 0 : n;
+    }
+
+    function findHeaderColumns(aoa) {
+      let orderNumPos = null;
+      for (let r = 0; r < aoa.length; r++) {
+        const row = aoa[r];
+        if (!row) continue;
+        for (let c = 0; c < row.length; c++) {
+          if (normText(row[c]) === 'Order Number') { orderNumPos = { r, c }; break; }
+        }
+        if (orderNumPos) break;
+      }
+      if (!orderNumPos) return null;
+
+      const headerRow = aoa[orderNumPos.r];
+      function findInRow(row, text) {
+        for (let c = 0; c < row.length; c++) {
+          if (normText(row[c]) === text) return c;
+        }
+        return null;
+      }
+      const cols = {
+        orderNumber: orderNumPos.c,
+        productCode: findInRow(headerRow, 'Product Code'),
+        description: findInRow(headerRow, 'Description'),
+        size: findInRow(headerRow, 'Size'),
+        unit: findInRow(headerRow, 'Unit'),
+        rate: findInRow(headerRow, 'Rate'),
+      };
+
+      // Closing Stock Qty/Amt sit a few rows below, as the right-most Qty/Amt pair
+      // in the multi-level header block (Opening / Receive / Sales / ... / Closing).
+      const searchEnd = Math.min(aoa.length, orderNumPos.r + 12);
+      let qtyPositions = [];
+      let amtPositions = [];
+      for (let r = orderNumPos.r; r < searchEnd; r++) {
+        const row = aoa[r];
+        if (!row) continue;
+        for (let c = 0; c < row.length; c++) {
+          const t = normText(row[c]);
+          if (t === 'Qty') qtyPositions.push({ r, c });
+          else if (t === 'Amt') amtPositions.push({ r, c });
+        }
+      }
+      if (qtyPositions.length === 0) return null;
+      qtyPositions.sort((a, b) => b.c - a.c);
+      const closingQtyCol = qtyPositions[0].c;
+      const closingQtyRow = qtyPositions[0].r;
+      let closingAmtCol = closingQtyCol + 1;
+      const verified = amtPositions.find(p => p.r === closingQtyRow && p.c === closingAmtCol);
+      if (!verified) {
+        amtPositions.sort((a, b) => b.c - a.c);
+        if (amtPositions.length) closingAmtCol = amtPositions[0].c;
+      }
+      cols.closingQty = closingQtyCol;
+      cols.closingAmt = closingAmtCol;
+      cols.headerRow = orderNumPos.r;
+
+      for (const k of ['orderNumber', 'productCode', 'description', 'size', 'unit', 'rate', 'closingQty', 'closingAmt']) {
+        if (cols[k] === null || cols[k] === undefined) return null;
+      }
+      return cols;
+    }
+
+    function findAreaBoundaries(aoa, headerRow) {
+      const areas = [];
+      for (let r = headerRow; r < aoa.length; r++) {
+        const row = aoa[r];
+        if (!row) continue;
+        for (let c = 0; c < row.length; c++) {
+          if (normText(row[c]) === 'Area') {
+            let name = null;
+            for (let cc = c + 1; cc < row.length && cc < c + 15; cc++) {
+              const t = normText(row[cc]);
+              if (t && t !== ':') { name = t; break; }
+            }
+            if (name) areas.push({ row: r, name });
+            break;
+          }
+        }
+      }
+      return areas;
+    }
+
+    function extractData(aoa, cols, areas) {
+      const result = {};
+      for (let i = 0; i < areas.length; i++) {
+        const start = areas[i].row + 1;
+        const end = (i + 1 < areas.length) ? areas[i + 1].row : aoa.length;
+        const name = areas[i].name;
+        if (!result[name]) result[name] = { rows: [], totalQty: 0, totalAmt: 0 };
+        for (let r = start; r < end; r++) {
+          const row = aoa[r];
+          if (!row) continue;
+          const ordText = normText(row[cols.orderNumber]);
+          if (!ordText) continue;
+          const qty = toNumber(row[cols.closingQty]);
+          const amt = toNumber(row[cols.closingAmt]);
+          result[name].rows.push({
+            orderNumber: ordText,
+            productCode: normText(row[cols.productCode]),
+            description: normText(row[cols.description]),
+            size: normText(row[cols.size]),
+            unit: normText(row[cols.unit]),
+            rate: toNumber(row[cols.rate]),
+            qty, amt
+          });
+          result[name].totalQty += qty;
+          result[name].totalAmt += amt;
+        }
+      }
+      return result;
+    }
+
+    function sortRows(rows, mode) {
+      const arr = rows.slice();
+      if (mode === 'productCode') {
+        arr.sort((a, b) => a.productCode < b.productCode ? -1 : a.productCode > b.productCode ? 1 : 0);
+      } else if (mode === 'orderNumber') {
+        arr.sort((a, b) => a.orderNumber < b.orderNumber ? -1 : a.orderNumber > b.orderNumber ? 1 : 0);
+      }
+      return arr;
+    }
+
+    function sanitizeSheetName(name) {
+      let n = String(name).replace(/[\[\]\*\/\\\?:]/g, ' ').trim();
+      if (n.length > 31) n = n.slice(0, 31);
+      return n || 'Sheet';
+    }
+
+    function orderedAreaNames(result) {
+      const known = PREFERRED_ORDER.filter(n => result[n]);
+      const extra = Object.keys(result).filter(n => !PREFERRED_ORDER.includes(n));
+      return known.concat(extra);
+    }
+
+    /* =========================================================
+       2. FILE PARSING (SheetJS)
+       ========================================================= */
+
+    async function parseWorkbookFile(file) {
+      if (typeof XLSX === 'undefined') {
+        throw new Error('ফাইল পড়ার লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ চেক করে পেজটি রিলোড করুন।');
+      }
+      const buf = await file.arrayBuffer();
+      const workbook = XLSX.read(buf, { type: 'array' });
+
+      let cols = null, areas = null, usedSheet = null;
+      for (const sn of workbook.SheetNames) {
+        const ws = workbook.Sheets[sn];
+        const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+        const c = findHeaderColumns(aoa);
+        if (!c) continue;
+        const a = findAreaBoundaries(aoa, c.headerRow);
+        if (a.length === 0) continue;
+        cols = c; areas = a; usedSheet = sn;
+        var chosenAoa = aoa;
+        break;
+      }
+
+      if (!cols) {
+        throw new Error('এই ফাইলে উপযুক্ত ERP স্টক ডেটা খুঁজে পাওয়া যায়নি। অনুগ্রহ করে নিশ্চিত করুন যে আপনি ERP থেকে ডাউনলোড করা মূল "Production Section Current Stock" রিপোর্ট ফাইলটি (Order Number, Product Code, Closing Stock ইত্যাদি কলামসহ) আপলোড করছেন।');
+      }
+      if (!areas || areas.length === 0) {
+        throw new Error('ফাইলে ডেটা কলাম পাওয়া গেছে, কিন্তু কোনো "Area" (ALTER / CURRENT / DATE FAILED / REJECT DISPLAY) সেকশন খুঁজে পাওয়া যায়নি। রিপোর্টের ফরম্যাট প্রত্যাশিত থেকে ভিন্ন হতে পারে।');
+      }
+
+      const result = extractData(chosenAoa, cols, areas);
+      return { result, sheetUsed: usedSheet };
+    }
+
+    /* =========================================================
+       3. WORKBOOK GENERATION (ExcelJS primary, SheetJS fallback)
+       ========================================================= */
+
+    const HEADERS = ['Order Number', 'Product Code', 'Description', 'Size', 'Unit', 'Rate', 'Closing Stock Qty', 'Closing Stock Amt'];
+    const COL_WIDTHS = [14, 15, 58, 10, 7, 11, 13, 13];
+
+    async function buildWithExcelJS(result, sortMode) {
+      const wb = new ExcelJS.Workbook();
+      const names = orderedAreaNames(result);
+      for (const name of names) {
+        const data = result[name];
+        const ws = wb.addWorksheet(sanitizeSheetName(name));
+        ws.columns = COL_WIDTHS.map(w => ({ width: w }));
+
+        const r1 = ws.getRow(1);
+        r1.getCell(1).value = 'Area:';
+        r1.getCell(2).value = name;
+        r1.getCell(7).value = data.totalQty;
+        r1.getCell(7).numFmt = '#,##0.00';
+        r1.getCell(8).value = data.totalAmt;
+        r1.getCell(8).numFmt = '#,##0.00';
+        r1.font = { name: 'Calibri', size: 10, bold: true };
+
+        const r2 = ws.getRow(2);
+        HEADERS.forEach((h, i) => { r2.getCell(i + 1).value = h; });
+        r2.font = { name: 'Calibri', size: 10, bold: true };
+        r2.eachCell(c => { c.border = { bottom: { style: 'thin', color: { argb: 'FF1F3B57' } } }; });
+
+        const rows = sortRows(data.rows, sortMode);
+        rows.forEach((row, idx) => {
+          const rr = ws.getRow(3 + idx);
+          rr.getCell(1).value = row.orderNumber;
+          rr.getCell(2).value = row.productCode;
+          rr.getCell(3).value = row.description;
+          rr.getCell(4).value = row.size;
+          rr.getCell(5).value = row.unit;
+          rr.getCell(6).value = row.rate; rr.getCell(6).numFmt = '#,##0.00';
+          rr.getCell(7).value = row.qty; rr.getCell(7).numFmt = '#,##0.00';
+          rr.getCell(8).value = row.amt; rr.getCell(8).numFmt = '#,##0.00';
+          rr.font = { name: 'Calibri', size: 10 };
+        });
+
+        ws.views = [{ state: 'frozen', ySplit: 2 }];
+      }
+      return wb.xlsx.writeBuffer();
+    }
+
+    function buildWithSheetJS(result, sortMode) {
+      const wb = XLSX.utils.book_new();
+      const names = orderedAreaNames(result);
+      for (const name of names) {
+        const data = result[name];
+        const rows = sortRows(data.rows, sortMode);
+        const aoa = [
+          ['Area:', name, null, null, null, null, data.totalQty, data.totalAmt],
+          HEADERS,
+          ...rows.map(r => [r.orderNumber, r.productCode, r.description, r.size, r.unit, r.rate, r.qty, r.amt])
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws['!cols'] = COL_WIDTHS.map(w => ({ wch: w }));
+        for (let r = 2; r < aoa.length; r++) {
+          ['F', 'G', 'H'].forEach(col => {
+            const addr = col + (r + 1);
+            if (ws[addr]) ws[addr].z = '#,##0.00';
+          });
+        }
+        ['G1', 'H1'].forEach(addr => { if (ws[addr]) ws[addr].z = '#,##0.00'; });
+        XLSX.utils.book_append_sheet(wb, ws, sanitizeSheetName(name));
+      }
+      return XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    }
+
+    async function generateAndDownload(result, sortMode) {
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const filename = `Finish_Store_Stock_Summary_${dateStr}.xlsx`;
+      let blob;
+      if (typeof ExcelJS !== 'undefined') {
+        try {
+          const buf = await buildWithExcelJS(result, sortMode);
+          blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        } catch (e) {
+          console.error('ExcelJS generation failed, falling back to SheetJS', e);
+        }
+      }
+      if (!blob) {
+        document.getElementById('fallbackNote').classList.remove('hidden');
+        const arr = buildWithSheetJS(result, sortMode);
+        blob = new Blob([arr], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    /* =========================================================
+       4. UI WIRING
+       ========================================================= */
+
+    const els = {
+      dropzone: document.getElementById('dropzone'),
+      fileInput: document.getElementById('fileInput'),
+      browseBtn: document.getElementById('browseBtn'),
+      panelUpload: document.getElementById('panel-upload'),
+      panelProcessing: document.getElementById('panel-processing'),
+      panelError: document.getElementById('panel-error'),
+      panelResults: document.getElementById('panel-results'),
+      errorText: document.getElementById('errorText'),
+      retryBtn: document.getElementById('retryBtn'),
+      resultFileName: document.getElementById('resultFileName'),
+      resultSub: document.getElementById('resultSub'),
+      tagsGrid: document.getElementById('tagsGrid'),
+      sortMode: document.getElementById('sortMode'),
+      downloadBtn: document.getElementById('downloadBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+    };
+
+    let currentResult = null;
+    let currentFileName = '';
+
+
+    function showPanel(name) {
+      ['panelUpload', 'panelProcessing', 'panelError', 'panelResults'].forEach(k => els[k].classList.add('hidden'));
+      els[name].classList.remove('hidden');
+    }
+
+    function fmtNum(n) {
+      return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function renderResults(result, fileName) {
+      currentResult = result;
+      currentFileName = fileName;
+      els.resultFileName.textContent = fileName;
+      const names = orderedAreaNames(result);
+      const totalRows = names.reduce((s, n) => s + result[n].rows.length, 0);
+      els.resultSub.innerHTML = names.length + 'টি এরিয়া থেকে মোট <span class="accent">' + totalRows + '</span>টি আইটেম পাওয়া গেছে';
+
+      els.tagsGrid.innerHTML = '';
+      names.forEach(name => {
+        const d = result[name];
+        const card = document.createElement('div');
+        card.className = 'tag-card' + (d.rows.length === 0 ? ' empty' : '');
+        card.innerHTML =
+          '<p class="tag-name">' + name + '</p>' +
+          '<div class="tag-row"><span class="lbl">আইটেম সংখ্যা</span><span class="val">' + d.rows.length + '</span></div>' +
+          '<div class="tag-row"><span class="lbl">Closing Qty</span><span class="val">' + fmtNum(d.totalQty) + '</span></div>' +
+          '<div class="tag-row"><span class="lbl">Closing Amt</span><span class="val">' + fmtNum(d.totalAmt) + '</span></div>';
+        els.tagsGrid.appendChild(card);
+      });
+
+      document.getElementById('fallbackNote').classList.add('hidden');
+      setStep(3);
+      showPanel('panelResults');
+    }
+
+    async function handleFile(file) {
+      if (!file) return;
+      setStep(2);
+      showPanel('panelProcessing');
+      document.getElementById('processingText').textContent = 'ফাইল পড়া হচ্ছে…';
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      try {
+        const { result } = await parseWorkbookFile(file);
+        renderResults(result, file.name);
+      } catch (err) {
+        els.errorText.textContent = err.message || 'ফাইলটি প্রসেস করা যায়নি।';
+        setStep(1);
+        showPanel('panelError');
+      }
+    }
+
+    els.browseBtn.addEventListener('click', () => els.fileInput.click());
+    els.dropzone.addEventListener('click', (e) => { if (e.target === els.browseBtn) return; els.fileInput.click(); });
+    els.fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+    ['dragenter', 'dragover'].forEach(evt => {
+      els.dropzone.addEventListener(evt, (e) => { e.preventDefault(); els.dropzone.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      els.dropzone.addEventListener(evt, (e) => { e.preventDefault(); els.dropzone.classList.remove('dragover'); });
+    });
+    els.dropzone.addEventListener('drop', (e) => {
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+
+    els.retryBtn.addEventListener('click', () => { setStep(1); els.fileInput.value = ''; showPanel('panelUpload'); });
+    els.resetBtn.addEventListener('click', () => { setStep(1); els.fileInput.value = ''; currentResult = null; showPanel('panelUpload'); });
+
+    els.downloadBtn.addEventListener('click', async () => {
+      if (!currentResult) return;
+      els.downloadBtn.disabled = true;
+      const prevText = els.downloadBtn.textContent;
+      els.downloadBtn.textContent = 'তৈরি হচ্ছে…';
+      try {
+        await generateAndDownload(currentResult, els.sortMode.value);
+      } catch (e) {
+        console.error(e);
+        els.errorText.textContent = 'ডাউনলোড ফাইল তৈরি করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।';
+        showPanel('panelError');
+      } finally {
+        els.downloadBtn.disabled = false;
+        els.downloadBtn.textContent = prevText;
+      }
+    });
+  </script>
+</body>
+
+</html>
